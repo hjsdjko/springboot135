@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>农产品销售系统</title>
+    <link rel="stylesheet" href="../static/modules/elementui/theme/index.css">
+    <link rel="stylesheet" href="../static/css/app.css">
+    <link rel="stylesheet" href="../static/css/index.css">
+    <link rel="stylesheet" href="../static/css/home.css">
+    <link rel="stylesheet" href="../static/modules/animate.min.css">
+    <script src="../static/modules/wow.min.js"></script>
+    <script src="../static/modules/vue.min.js"></script>
+    <script src="../static/modules/elementui/index.js"></script>
+    <script src="../static/modules/echarts.min.js"></script>
+    <script src="../static/iconfont/iconfont.js"></script>
+</head>
+<body>
+<el-container id="page" v-cloak>
+    <el-header height="auto">
+        <page-header></page-header>
+    </el-header>
+    <el-container>
+    <page-aside>
+        <template v-slot:menu>
+            <page-menus></page-menus>
+        </template>
+    </page-aside>
+        <el-main>
+            <div id="child-page">
+                <div class="count_list">
+                    <div class="count_item" v-if="btnAuth('orders','首页总数')">
+                        <div class="item-head">
+                            <span class="item-head-title">商品订单</span>
+                        </div>
+                        <div class="item-content">
+                            <div class="item_title">商品订单总数</div>
+                            <div class="item_num">{{ordersCount}}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="chart_list">
+                    <div class="chart_item" v-if="btnAuth('orders','首页统计')">
+                        <div id="ordersEchart1" class="Echart"></div>
+                    </div>
+                    <div class="chart_item" v-if="btnAuth('orders','首页统计')">
+                        <div id="ordersEchart2" class="Echart"></div>
+                    </div>
+                </div>
+
+            </div>
+        </el-main>
+    </el-container>
+</el-container>
+</body>
+<script src="../static/modules/axios.min.js"></script>
+<script src="../utils/http.js"></script>
+<script src="../utils/toolUtil.js"></script>
+<script src="../utils/global_mixin.js"></script>
+<!--引入组件-->
+<script src="../components/pageHeader.js"></script>
+<script src="../components/pageMenus.js"></script>
+<script src="../components/pageAside.js"></script>
+<script>
+    var vm = new Vue({
+        el: '#page',
+        data(){
+            return {
+                ordersCount:0,
+            }
+        },
+        mounted(){
+            this.getCountList()
+            this.getChartList()
+        },
+        methods: {
+            getCountList(){
+                if(this.btnAuth('orders','首页总数')){
+                    this.getordersCount()
+                }
+            },
+            getordersCount(){
+                http.get('orders/count').then(res=>{
+                    this.ordersCount = res.data.data
+                })
+            },
+            //权限验证
+            btnAuth(e,a){
+                return toolUtil.isAuth(e,a)
+            },
+            getChartList(){
+                if(this.btnAuth('orders','首页统计')){
+                    this.getordersChart1()
+                }
+                if(this.btnAuth('orders','首页统计')){
+                    this.getordersChart2()
+                }
+            },
+            getordersChart1(){
+                this.$nextTick(()=>{
+                    var ordersEchart1 = echarts.init(document.getElementById("ordersEchart1"),'macarons');
+                    http.get(
+                        `orders/value/goodname/buynumber`
+                    ).then(res=>{
+                        let obj = res.data.data
+                        let xAxis = [];
+                        let yAxis = [];
+                        let pArray = []
+                        for(let i=0;i<obj.length;i++){
+                            xAxis.push(obj[i].goodname);
+                            yAxis.push(parseFloat((obj[i].total)));
+                            pArray.push({
+                                value: parseFloat((obj[i].total)),
+                                name: obj[i].goodname
+                            })
+                        }
+                        let option = {};
+                        option = {
+                            title: {
+                                text: '销售总额统计',
+                                left: 'center'
+                            },
+                            grid:{
+                                containLabel:true
+                            },
+                            tooltip: {
+                                trigger: 'item',
+                                formatter: '{b} : {c}'
+                            },
+                                xAxis: {
+                                    type: 'category',
+                                    data: xAxis,
+                                    axisLabel : {
+                                        rotate:40
+                                    }
+                                },
+                                yAxis: {
+                                    type: 'value'
+                                },
+                            series: [{
+                                data: yAxis,
+                                type: 'bar'
+                            }]
+                        };
+                        // 使用刚指定的配置项和数据显示图表。
+                        ordersEchart1.setOption(option);
+                        //根据窗口的大小变动图表
+                        window.onresize = function() {
+                            ordersEchart1.resize();
+                        };
+                    })
+                })
+            },
+            getordersChart2(){
+                this.$nextTick(()=>{
+                    var ordersEchart2 = echarts.init(document.getElementById("ordersEchart2"),'macarons');
+                    http.get(
+                        `orders/value/goodname/total`
+                    ).then(res=>{
+                        let obj = res.data.data
+                        let xAxis = [];
+                        let yAxis = [];
+                        let pArray = []
+                        for(let i=0;i<obj.length;i++){
+                            xAxis.push(obj[i].goodname);
+                            yAxis.push(parseFloat((obj[i].total)));
+                            pArray.push({
+                                value: parseFloat((obj[i].total)),
+                                name: obj[i].goodname
+                            })
+                        }
+                        let option = {};
+                        option = {
+                            title: {
+                                text: '销售数量统计',
+                                left: 'center'
+                            },
+                            legend: {
+                                orient: 'vertical',
+                                left: 'left'
+                            },
+                            tooltip: {
+                                trigger: 'item',
+                                formatter: '{b} : {c} ({d}%)'
+                            },
+                            series: [
+                                {
+                                    type: 'pie',
+                                        radius: '55%',
+                                    center: ['50%', '60%'],
+                                    data: pArray,
+                                    emphasis: {
+                                        itemStyle: {
+                                            shadowBlur: 10,
+                                            shadowOffsetX: 0,
+                                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                                        }
+                                    }
+                                }
+                            ]
+                        };
+                        // 使用刚指定的配置项和数据显示图表。
+                        ordersEchart2.setOption(option);
+                        //根据窗口的大小变动图表
+                        window.onresize = function() {
+                            ordersEchart2.resize();
+                        };
+                    })
+                })
+            },
+        }
+    })
+</script>
+</html>

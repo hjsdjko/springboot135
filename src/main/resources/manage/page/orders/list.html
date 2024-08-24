@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>商品订单</title>
+    <link rel="stylesheet" href="../../static/modules/elementui/theme/index.css">
+    <link rel="stylesheet" href="../../static/css/app.css">
+    <link rel="stylesheet" href="../../static/css/index.css">
+    <link rel="stylesheet" href="../../static/css/formComponent.css">
+    <link rel="stylesheet" href="../../static/modules/animate.min.css">
+    <script src="../../static/modules/wow.min.js"></script>
+    <script src="../../static/modules/vue.min.js"></script>
+    <script src="../../static/modules/elementui/index.js"></script>
+    <script src="../../static/iconfont/iconfont.js"></script>
+</head>
+<body>
+<el-container id="page" v-cloak>
+    <el-header height="auto">
+        <page-header page-name="商品订单"></page-header>
+    </el-header>
+    <el-container>
+        <page-aside>
+            <template v-slot:menu>
+                <page-menus></page-menus>
+            </template>
+        </page-aside>
+            <el-main>
+                <div class="child-page">
+                    <el-tabs v-model="orderStatus" class="state-tabs" @tab-click="orderTabClick" type="card" >
+                        <el-tab-pane label="全部" name="全部" v-if="btnAuth(`orders/商品订单`,'any')"></el-tab-pane>
+                        <el-tab-pane label="未支付" name="未支付" v-if="btnAuth(`orders/未支付`,'any')"></el-tab-pane>
+                        <el-tab-pane label="拼团中" name="拼团中" v-if="btnAuth(`orders/拼团中`,'any')"></el-tab-pane>
+                        <el-tab-pane label="已支付" name="已支付" v-if="btnAuth(`orders/已支付`,'any')"></el-tab-pane>
+                        <el-tab-pane label="已发货" name="已发货" v-if="btnAuth(`orders/已发货`,'any')"></el-tab-pane>
+                        <el-tab-pane label="已完成" name="已完成" v-if="btnAuth(`orders/已完成`,'any')"></el-tab-pane>
+                        <el-tab-pane label="已退款" name="已退款" v-if="btnAuth(`orders/已退款`,'any')"></el-tab-pane>
+                        <el-tab-pane label="已取消" name="已取消" v-if="btnAuth(`orders/已取消`,'any')"></el-tab-pane>
+                    </el-tabs>
+                    <el-form :model="searchQuery" class="list-query-row"  size="small" :inline="true" label-width="80px" >
+                        <el-form-item class="query-input" label="订单编号">
+                            <el-input v-model="searchQuery.orderid"
+                                      placeholder="订单编号"
+                                      size="small"
+                                      clearable>
+                            </el-input>
+                        </el-form-item>
+                        <el-form-item class="query-btn">
+                            <el-button type="primary" @click="searchClick()" size="small">搜索</el-button>
+                        </el-form-item>
+                    </el-form>
+                    <div class="btns-row">
+                        <el-button type="success" @click="addClick" v-if="btnAuth('orders','新增')" class="add">新增</el-button>
+                        <el-button class="info" v-if=" btnAuth('orders'+`/${orderStatus=='全部'?'商品订单':orderStatus}`,'查看')"
+                                    :type="selRows.length==1?'info':''"
+                                    :disabled="selRows.length==1?false:true"
+                                    @click="infoClick(null)">详情</el-button>
+                        <el-button class="edit"
+                                   :type="selRows.length==1?'primary':''"
+                                   :disabled="selRows.length==1?false:true"
+                                   @click="editClick"
+                                   v-if=" btnAuth('orders'+`/${orderStatus=='全部'?'商品订单':orderStatus}`,'修改')">修改</el-button>
+                        <el-button class="del"
+                                   :type="selRows.length?'danger':''"
+                                   :disabled="selRows.length?false:true"
+                                   @click="delClick(null)"
+                                   v-if="btnAuth('orders'+`/${orderStatus=='全部'?'商品订单':orderStatus}`,'删除')">删除</el-button>
+                        <el-button class="other"
+                                   :type="selRows.length?'danger':''"
+                                   :disabled="selRows.length?false:true"
+                                   @click="exportClick"
+                                   v-if="btnAuth('orders'+`/${orderStatus=='全部'?'商品订单':orderStatus}`,'导出')">导出</el-button>
+                        <el-button class="chart" type="warning" @click="echartClick1" v-if="btnAuth('orders'+`/${orderStatus=='全部'?'商品订单':orderStatus}`,'销售总额统计')">销售总额统计</el-button>
+                        <el-button class="chart" type="warning" @click="echartClick2" v-if="btnAuth('orders'+`/${orderStatus=='全部'?'商品订单':orderStatus}`,'销售总额统计')">销售数量统计</el-button>
+                    </div>
+                    <div class="table-wrapper">
+                        <el-table
+                                v-loading="listLoading"
+                                @selection-change="handleSelectionChange"
+                                ref="table"
+                                :data="list"
+                                @row-click="listChange"
+                                :border="false" :stripe="true" >
+                            <el-table-column type="selection" width="55" class-name="selection-column"></el-table-column>
+                            <el-table-column label="序号" width="70" align="center" class-name="num-column">
+                                <template slot-scope="scope">{{ scope.$index + 1}}</template>
+                            </el-table-column>
+                            <el-table-column
+                                    label="订单编号">
+                                <template slot-scope="scope">
+                                    {{scope.row.orderid}}
+                                </template>
+                            </el-table-column>
+                            <el-table-column
+                                    label="商品id">
+                                <template slot-scope="scope">
+                                    {{scope.row.goodid}}
+                                </template>
+                            </el-table-column>
+                            <el-table-column
+                                    label="商品名称">
+                                <template slot-scope="scope">
+                                    {{scope.row.goodname}}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="图片" width="120" align="center" class-name="img-column">
+                                <template slot-scope="scope">
+                                    <div v-if="scope.row.picture">
+                                        <el-image v-if="scope.row.picture.substring(0,4)=='http'"
+                                                  :preview-src-list="[scope.row.picture.split(',')[0]]"
+                                                  :src="scope.row.picture.split(',')[0]" style="width:100px;height:100px"></el-image>
+                                        <el-image v-else
+                                                  :preview-src-list="[baseUrl+scope.row.picture.split(',')[0]]"
+                                                  :src="baseUrl+scope.row.picture.split(',')[0]" style="width:100px;height:100px">
+                                        </el-image>
+                                    </div>
+                                    <div v-else>无图片</div>
+                                </template>
+                            </el-table-column>
+                            <el-table-column
+                                    label="购买数量">
+                                <template slot-scope="scope">
+                                    {{scope.row.buynumber}}
+                                </template>
+                            </el-table-column>
+                            <el-table-column
+                                    label="单价">
+                                <template slot-scope="scope">
+                                    {{scope.row.price}}
+                                </template>
+                            </el-table-column>
+                            <el-table-column
+                                    label="折扣价">
+                                <template slot-scope="scope">
+                                    {{scope.row.discountprice}}
+                                </template>
+                            </el-table-column>
+                            <el-table-column
+                                    label="总价">
+                                <template slot-scope="scope">
+                                    {{scope.row.total}}
+                                </template>
+                            </el-table-column>
+                            <el-table-column
+                                    label="折扣总价格">
+                                <template slot-scope="scope">
+                                    {{scope.row.discounttotal}}
+                                </template>
+                            </el-table-column>
+                            <el-table-column
+                                            :formatter="orderStatusFormatter"
+                                            label="支付类型">
+                            </el-table-column>
+                            <el-table-column
+                                    label="订单状态">
+                                <template slot-scope="scope">
+                                    {{scope.row.status}}
+                                </template>
+                            </el-table-column>
+                            <el-table-column
+                                    label="备注">
+                                <template slot-scope="scope">
+                                    {{scope.row.remark}}
+                                </template>
+                            </el-table-column>
+                            <el-table-column
+                                    label="创建时间">
+                                <template slot-scope="scope">
+                                    {{scope.row.addtime}}
+                                </template>
+                            </el-table-column>
+                            <el-table-column
+                                    label="商户名称">
+                                <template slot-scope="scope">
+                                    {{scope.row.shangjiazhanghao}}
+                                </template>
+                            </el-table-column>
+                            <el-table-column
+                                    label="商品类型">
+                                <template slot-scope="scope">
+                                    {{scope.row.goodtype}}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="下单时间">
+                                <template slot-scope="scope">
+                                    {{scope.row.addtime}}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="操作" width="200" class-name="option-column">
+                                <template slot-scope="scope">
+                                    <el-button size="mini" type="primary" class="info" v-if=" btnAuth('orders'+`/${orderStatus=='全部'?'商品订单':orderStatus}`,'查看')" @click="infoClick(scope.row.id)">详情</el-button>
+                                    <el-button size="mini" type="primary" class="some wl" v-if="btnAuth('orders'+(scope.row.status?'/'+scope.row.status:''),'物流')" @click="logisticsClick(scope.row)">物流</el-button>
+                                    <el-button size="mini" type="primary" class="some fh" v-if="btnAuth('orders'+(scope.row.status?'/'+scope.row.status:''),'发货')" @click="sendGoodClick(scope.row)">发货</el-button>
+                                    <el-button size="mini" type="primary" class="some qrsh" v-if="btnAuth('orders'+(scope.row.status?'/'+scope.row.status:''),'确认收货')" @click="confirmGoodClick(scope.row)">确认收货</el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </div>
+                    <el-pagination class="pagination"
+                                   :total="total"
+                                   :page-size="listQuery.limit"
+                                   @size-change="sizeChange"
+                                   @current-change="currentChange"
+                                   @prev-click="prevClick"
+                                   @next-click="nextClick"
+                                   layout="prev, pager, next" next-text="下一页" prev-text="上一页" ></el-pagination>
+                </div>
+                <orders-form ref="formRef" @change="formModelChange"></orders-form>
+                <!-- 统计图弹窗 -->
+                <el-dialog :visible.sync="echartVisible" :title="'销售总额统计'" width="70%">
+                    <el-tabs v-model="echartActive" class="demo-tabs" @tab-click="echartTabClick" type="card">
+                        <el-tab-pane label="销售总额统计" name="1"></el-tab-pane>
+                        <el-tab-pane label="销售数量统计" name="2"></el-tab-pane>
+                    </el-tabs>
+                    <div  id="buynumberEchart1" style="height:600px;"></div>
+                    <div v-if="echartActive==2" id="totalEchart2" style="height:600px;"></div>
+                </el-dialog>
+            </el-main>
+    </el-container>
+</el-container>
+</body>
+<script src="../../static/modules/axios.min.js"></script>
+<script src="../../utils/http.js"></script>
+<script src="../../utils/toolUtil.js"></script>
+<script src="../../utils/global_mixin.js"></script>
+<!--引入组件-->
+<script src="../../components/pageHeader.js"></script>
+<script src="../../components/pageMenus.js"></script>
+<script src="../../components/pageAside.js"></script>
+<script src="formComponent.js"></script>
+<script>
+    var vm = new Vue({
+        el: '#page',
+        data(){
+            return {
+                userInfo:{},
+                tableName:'orders',
+                listLoading:false,
+                listQuery:{
+                    page: 1,
+                    limit: 20,
+                    sort: 'id',
+                    order: 'desc'
+                },
+                searchQuery:{},
+                orderStatus:'',
+                total:0,    //记录总条数
+                list:null,  //列表数据
+                selRows:[], //选中的记录
+                echartVisible:false,
+                echartActive:'1',    //激活的tab
+            }
+        },
+        created(){
+            let menuJump = toolUtil.getUrlParamsByKey("menuJump")
+            if(menuJump){
+                this.orderStatus = menuJump
+            }else{
+                this.orderStatus = "全部"
+            }
+            this.init()
+        },
+        methods: {
+            init(){
+                this.getList()
+            },
+            formModelChange(){
+                this.searchClick()
+            },
+            listChange(row){
+            this.$nextTick(()=>{
+                this.$refs['table'].clearSelection()
+                this.$refs['table'].toggleRowSelection(row)
+                })
+            },
+            orderTabClick(){
+                this.getList()
+            },
+            orderStatusFormatter(row,column){
+                var temp = ''
+                switch (row.type-0) {
+                    case 1:
+                        temp = '现金'
+                        break
+                    case 2:
+                        temp = '积分'
+                        break
+                    case 3:
+                        temp = '拼团'
+                        break
+                }
+                return temp
+            },
+            //修改物流
+            logisticsClick(row){
+                this.$refs.formRef.init(row.id,'logistics','',row)
+            },
+            //发货
+            sendGoodClick(row){
+                this.$confirm(`确定该订单商品发货？`, '提示', {
+                    confirmButtonText: '是',
+                    cancelButtonText: '否',
+                    type: 'warning',
+                }).then(()=>{
+                    row.status = '已发货'
+                    http.post('orders/update',row).then(res=>{
+                        this.$message.success('已发货')
+                        this.searchClick()
+                    })
+                })
+            },
+            //确认收货
+            confirmGoodClick(row){
+                this.$confirm(`确定该订单商品已收货？`, '提示', {
+                    confirmButtonText: '是',
+                    cancelButtonText: '否',
+                    type: 'warning',
+                }).then(()=>{
+                    row.status = '已完成'
+                    http.post('orders/update',row).then(res=>{
+                        this.$message.success('订单完成')
+                        this.searchClick()
+                    })
+                })
+            },
+            getList(){
+                this.listLoading = true
+                let params = JSON.parse(JSON.stringify(this.listQuery))
+                                params['sort'] = 'id'
+                params['order'] = 'desc'
+                                    if(this.orderStatus!="全部"){
+                        params['status'] = this.orderStatus
+                    }
+                                                                                                                                                                            if(this.searchQuery.orderid&&this.searchQuery.orderid!=''){
+                                    params['orderid'] = '%' + this.searchQuery.orderid + '%'
+                                }
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            http.get(`orders/page`,{
+                    params:params
+                }).then(res=>{
+                    this.listLoading = false
+                    this.list = res.data.data.list
+                    this.total = +res.data.data.total
+                })
+            },
+            //删
+            delClick(id){
+                let ids = []
+                if (id) {
+                    ids = [id]
+                } else {
+                    if (this.selRows.length) {
+                        for (let x in this.selRows) {
+                            ids.push(this.selRows[x].id)
+                        }
+                    } else {
+                        return false
+                    }
+                }
+                this.$confirm(`是否删除选中商品订单`, '提示', {
+                    confirmButtonText: '是',
+                    cancelButtonText: '否',
+                    type: 'warning'
+                }).then(()=>{
+                    http.post(`orders/delete`,ids).then((res)=>{
+                    this.$message.success('操作成功')
+                        this.getList()
+                    })
+                })
+            },
+
+            //多选
+            handleSelectionChange(e){
+                this.selRows = e
+            },
+            //列表数据
+            //分页
+            sizeChange(size){
+                this.listQuery.limit = size
+                this.getList()
+            },
+            currentChange(page){
+                this.listQuery.page = page
+                this.getList()
+            },
+            prevClick(){
+                this.listQuery.page = this.listQuery.page - 1
+                this.getList()
+            },
+            nextClick(){
+                this.listQuery.page = this.listQuery.page + 1
+                this.getList()
+            },
+            searchClick(){
+                this.listQuery.page = 1
+                this.getList()
+            },
+            addClick(){
+                this.$refs['formRef'].init()
+            },
+            //权限验证
+            btnAuth(e,a){
+                return toolUtil.isAuth(e,a)
+            },
+            infoClick(id=null){
+                if(id){
+                    this.$refs['formRef'].init(id,'info')
+                }else if(this.selRows.length){
+                    this.$refs['formRef'].init(this.selRows[0].id,'info')
+                }
+            },
+            editClick(){
+                if(this.selRows.length){
+                    this.$refs['formRef'].init(this.selRows[0].id,'edit')
+                }
+            },
+            //导出选中数据
+            exportClick(){
+                toolUtil.loadScript('../../static/modules/xlsx.min.js',()=>{
+                    let rowArr = [
+                        [
+                            "订单编号",
+                            "商品表名",
+                            "商品id",
+                            "商品名称",
+                            "图片",
+                            "购买数量",
+                            "单价",
+                            "折扣价",
+                            "总价",
+                            "折扣总价格",
+                            "支付类型",
+                            "订单状态",
+                            "地址",
+                            "电话",
+                            "收货人",
+                            "备注",
+                            "物流",
+                            "创建时间",
+                            "用户id",
+                            "商户名称",
+                            "商品类型",
+                        ]
+                    ]
+                    this.selRows.forEach(item=>{
+                        rowArr.push([
+                            item.orderid,
+                            item.tablename,
+                            item.goodid,
+                            item.goodname,
+                            item.picture,
+                            item.buynumber,
+                            item.price,
+                            item.discountprice,
+                            item.total,
+                            item.discounttotal,
+                            item.type,
+                            item.status,
+                            item.address,
+                            item.tel,
+                            item.consignee,
+                            item.remark,
+                            item.logistics,
+                            item.addtime,
+                            item.userid,
+                            item.shangjiazhanghao,
+                            item.goodtype,
+                        ])
+                    })
+                    toolUtil.exportExcelByArray(rowArr,"商品订单.xlsx")
+                })
+            },
+            spiderClick(){
+
+            },
+            download(file){
+                if(!file){
+                    this.$message.error('文件不存在')
+                }
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.setAttribute('target', '_blank');
+                file && a.setAttribute('download', file);
+                a.href = baseUrl + file;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            },
+            echartTabClick(){
+                switch (this.echartActive){
+                    case "1":this.echartClick1();break;
+                    case "2":this.echartClick2();break;
+                }
+            },
+            echartClick1(){
+                this.echartActive = '1'
+                this.echartVisible = true
+                toolUtil.loadScript("../../static/modules/echarts.min.js",()=>{
+                    this.$nextTick(()=>{
+                        let buynumberEchart1 = echarts.init(document.getElementById("buynumberEchart1"),'macarons');
+                        http.get(
+                            `orders/value/goodname/buynumber`
+                        ).then(res=>{
+                            let obj = res.data.data
+                            let xAxis = [];
+                            let yAxis = [];
+                            let pArray = []
+                            for(let i=0;i<obj.length;i++){
+                                xAxis.push(obj[i].goodname);
+                                yAxis.push(parseFloat((obj[i].total)));
+                                pArray.push({
+                                    value: parseFloat((obj[i].total)),
+                                    name: obj[i].goodname
+                                })
+                            }
+                            let option = {};
+                            option = {
+                                title: {
+                                    text: '销售总额统计',
+                                    left: 'center'
+                                },
+                                tooltip: {
+                                    trigger: 'item',
+                                    formatter: '{b} : {c}'
+                                },
+                                xAxis: {
+                                    type: 'category',
+                                            data: xAxis,
+                                            axisLabel : {
+                                        rotate:40
+                                    }
+                                },
+                                yAxis: {
+                                    type: 'value'
+                                },
+                                series: [{
+                                    data: yAxis,
+                                    type: 'bar'
+                                }]
+                            };
+                            // 使用刚指定的配置项和数据显示图表。
+                            buynumberEchart1.setOption(option);
+                            //根据窗口的大小变动图表
+                            window.onresize = function() {
+                                buynumberEchart1.resize();
+                            };
+                        })
+                    })
+                })
+            },
+            echartClick2(){
+                this.echartActive = '2'
+                this.echartVisible = true
+                toolUtil.loadScript("../../static/modules/echarts.min.js",()=>{
+                    this.$nextTick(()=>{
+                        let totalEchart2 = echarts.init(document.getElementById("totalEchart2"),'macarons');
+                        http.get(
+                            `orders/value/goodname/total`
+                        ).then(res=>{
+                            let obj = res.data.data
+                            let xAxis = [];
+                            let yAxis = [];
+                            let pArray = []
+                            for(let i=0;i<obj.length;i++){
+                                xAxis.push(obj[i].goodname);
+                                yAxis.push(parseFloat((obj[i].total)));
+                                pArray.push({
+                                    value: parseFloat((obj[i].total)),
+                                    name: obj[i].goodname
+                                })
+                            }
+                            let option = {};
+                            option = {
+                                title: {
+                                    text: '销售数量统计',
+                                    left: 'center'
+                                },
+                                legend: {
+                                    orient: 'vertical',
+                                    left: 'left'
+                                },
+                                tooltip: {
+                                    trigger: 'item',
+                                    formatter: '{b} : {c} ({d}%)'
+                                },
+                                series: [
+                                    {
+                                        type: 'pie',
+                                        radius: '55%',
+                                        center: ['50%', '60%'],
+                                            data: pArray,
+                                            emphasis: {
+                                            itemStyle: {
+                                                shadowBlur: 10,
+                                                shadowOffsetX: 0,
+                                                shadowColor: 'rgba(0, 0, 0, 0.5)'
+                                            }
+                                        }
+                                    }
+                                ]
+                            };
+                            // 使用刚指定的配置项和数据显示图表。
+                            totalEchart2.setOption(option);
+                            //根据窗口的大小变动图表
+                            window.onresize = function() {
+                                totalEchart2.resize();
+                            };
+                        })
+                    })
+                })
+            },
+        }
+    })
+</script>
+<style>
+/*返回按钮盒子*/
+.back-row {
+    margin-bottom: 20px;
+    animation-name: fadeInUp;
+    animation-duration: 1s;
+}
+.back-row>button {
+    padding: 6px 12px;
+    font-size: 14px;
+}
+.back-row>button:focus,.back-row>button:hover {
+    color: #56c68b;
+    border-color: #56c68b50;
+    background: #56c68b10;
+}
+.back-row>button:active {
+    color: #56c68b;
+    border-color: #56c68b50;
+    outline: none
+}
+
+/*订单状态总盒子*/
+.state-tabs{
+    background:none;
+    margin-bottom:20px;
+    border: 0px;
+    animation-name: fadeInUp;
+    animation-duration: 1s;
+}
+.el-tabs--card>.el-tabs__header {
+    margin:0px;
+    border-bottom: 0px solid #dfe4ed;
+}
+/*订单状态盒子*/
+.el-tabs--card>.el-tabs__header .el-tabs__nav {
+    border: 0px solid #dfe4ed;
+    border-radius: 0px;
+}
+/*订单状态item*/
+.el-tabs--card>.el-tabs__header .el-tabs__item {
+    background:#fff;
+    border: 1px solid #ddd;
+    margin-right:20px;
+    height: 32px;
+    line-height: 32px;
+}
+.el-tabs--card>.el-tabs__header .el-tabs__item:hover {
+    color: #56c68b;
+    border-color: #56c68b;
+}
+.el-tabs--card>.el-tabs__header .el-tabs__item:first-child {
+   border-left: 1px solid #ddd;
+}
+.el-tabs--card>.el-tabs__header .el-tabs__item:first-child:hover {
+   border-left: 1px solid #56c68b;
+}
+.el-tabs--card>.el-tabs__header .el-tabs__item.is-active {
+    color: #56c68b;
+    border-color: #56c68b;
+}
+
+/*表单总盒子*/
+form.el-form.list-query-row.el-form--inline {
+    background: #fff;
+    border: 1px solid #ddd;
+    padding: 10px 10px 0;
+    animation-name: fadeInUp;
+    animation-duration: 1.5s;
+}
+.el-select .el-input--prefix .el-input__inner {
+    padding-left: 10px
+}
+.el-select .el-input--suffix .el-input__inner {
+    padding-right: 10px
+}
+.el-input.el-input--small.el-input--suffix {
+    margin: 0 5px;
+}
+label.el-form-item__label {
+    width: auto !important;
+}
+.el-select .el-input--suffix .el-input__inner {
+    max-width: 150px;
+}
+/*箭头*/
+.el-input__suffix {
+    right: 10px;
+    color: #c0c4cc;
+}
+/*搜索按钮*/
+.el-button--primary {
+    color: #fff;
+    background: #56c68b;
+    border-color: #56c68b;
+}
+.el-button--primary:focus,.el-button--primary:hover {
+    background: #56c68b80;
+    border-color: #56c68b80;
+    color: #333;
+}
+
+/*按钮盒子*/
+.btns-row {
+    margin-top: 20px;
+}
+/*按钮*/
+.btns-row button{
+     padding: 0 20px;
+     height:32px;
+     line-height:32px;
+}
+
+/*按钮新增*/
+.btns-row  .add{
+    animation-name: fadeInUp;
+    animation-duration: 1s;
+}
+/*按钮详情*/
+.btns-row  .info{
+    animation-name: fadeInUp;
+    animation-duration: 1.5s;
+}
+/*按钮详情悬浮*/
+.btns-row  .info:hover {
+    color: #56c68b;
+    border-color: #56c68b;
+    background: #56c68b10;
+}
+
+/*按钮修改*/
+.btns-row  .edit{
+    animation-name: fadeInUp;
+    animation-duration: 2s;
+}
+/*按钮删除*/
+.btns-row  .del{
+    animation-name: fadeInUp;
+    animation-duration: 2.5s;
+}
+/*按钮统计图*/
+.btns-row  .chart {
+    animation-name: fadeInUp;
+    animation-duration: 3s;
+}
+/*按钮其他*/
+.btns-row  .other {
+    animation-name: fadeInUp;
+    animation-duration: 3.5s;
+}
+
+/*表格总盒子*/
+.table-wrapper {
+    margin-top: 20px;
+  animation-name: zoomInUp;
+  animation-duration: 2s;
+}
+/*表格盒子*/
+.el-table {
+   background: rgba(255,255,255,1);
+   border: 0px solid #eee;
+}
+.el-table:before {
+    content: "";
+    position: absolute;
+    background:none;
+    z-index: 1
+}
+/*表格头*/
+.el-table__header .has-gutter tr{
+    background: #56c68b30;
+}
+.el-table__header .has-gutter tr th{
+    background: none;
+    color:#333;
+}
+.el-table tr{
+    background: none;
+}
+/*tr悬浮*/
+.el-table tr:hover{
+    background: #56c68b10;
+}
+/*斑马纹*/
+.el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell {
+    background: #56c68b05;
+}
+/*删除默认的背景色*/
+.el-table--enable-row-hover .el-table__body tr:hover>td.el-table__cell {
+    background: none;
+}
+/*th下横线*/
+.el-table th.el-table__cell.is-leaf {
+    border-bottom:0px solid #eee;
+}
+/*td下横线*/
+.el-table td.el-table__cell {
+    border-bottom:1px solid #eee;
+}
+
+/*表格按钮*/
+.el-table .cell {
+    display:flex;
+    align-items: center;
+    padding-left: 10px;
+    padding-right: 10px
+}
+
+.el-table td button{
+     padding: 0 20px;
+     height:32px;
+     line-height:32px;
+}
+/*表格按钮详情*/
+.el-table td  .info{
+    animation-name: fadeInUp;
+    animation-duration: 1.5s;
+}
+/*表格按钮详情悬浮*/
+.el-table td  .info:hover {
+    color: #56c68b;
+    border-color: #56c68b;
+    background: #56c68b10;
+}
+/*表格按钮删除*/
+.el-table td  .delete{
+    animation-name: fadeInUp;
+    animation-duration: 2s;
+}
+
+/*复选框*/
+.el-checkbox__inner:hover {
+    border-color: #56c68b;
+}
+.el-checkbox__input.is-checked .el-checkbox__inner {
+    background-color: #56c68b;
+    border-color: #56c68b;
+}
+.el-checkbox__input.is-checked+.el-checkbox__label {
+    color: #56c68b;
+}
+.el-checkbox__input.is-focus .el-checkbox__inner {
+    border-color: #56c68b;
+}
+.el-checkbox__input.is-indeterminate .el-checkbox__inner {
+    background-color: #56c68b;
+    border-color: #56c68b;
+}
+
+/*分页总盒子*/
+.pagination {
+    text-align: left;
+    margin-top: 10px;
+    background: none;
+}
+/*分页按钮*/
+.el-pagination button{
+    padding: 0 6px;
+}
+.el-pagination button:hover {
+    color: #56c68b;
+}
+.el-pagination button:disabled {
+    color: #999;
+    background: none;
+    margin:0 2px;
+    border-radius:2px;
+}
+.el-pagination button,.el-pagination span:not([class*=suffix]) {
+    font-size: 14px;
+    height: 28px;
+    line-height: 28px;
+}
+.el-pagination .btn-next,.el-pagination .btn-prev {
+    color: #666;
+    font-weight:500;
+    background: none;
+    margin:0 2px;
+    border-radius:2px;
+}
+.el-pager li {
+    min-width:inherit;
+    color: #666;
+    font-size: 14px;
+    font-weight:500;
+    padding:0 4px;
+    height: 28px;
+    line-height: 28px;
+    background: none;
+    margin:0 5px;
+    border-radius:2px;
+}
+.el-pager li:hover {
+    color: #56c68b;
+}
+.el-pager li.active {
+    color: #56c68b;
+}
+.el-pagination .el-pager li.disabled {
+    color: #999;
+}
+</style>
+</html>

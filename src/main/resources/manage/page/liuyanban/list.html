@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>留言板</title>
+    <link rel="stylesheet" href="../../static/modules/elementui/theme/index.css">
+    <link rel="stylesheet" href="../../static/css/app.css">
+    <link rel="stylesheet" href="../../static/css/index.css">
+    <link rel="stylesheet" href="../../static/css/formComponent.css">
+    <link rel="stylesheet" href="../../static/modules/animate.min.css">
+    <script src="../../static/modules/wow.min.js"></script>
+    <script src="../../static/modules/vue.min.js"></script>
+    <script src="../../static/modules/elementui/index.js"></script>
+    <script src="../../static/iconfont/iconfont.js"></script>
+</head>
+<body>
+<el-container id="page" v-cloak>
+    <el-header height="auto">
+        <page-header page-name="留言板"></page-header>
+    </el-header>
+    <el-container>
+        <page-aside>
+            <template v-slot:menu>
+                <page-menus></page-menus>
+            </template>
+        </page-aside>
+            <el-main>
+                <div class="child-page">
+                    <el-form :model="searchQuery" class="list-query-row"  size="small" :inline="true" label-width="80px" >
+                        <el-form-item class="query-input" label="标题">
+                            <el-input v-model="searchQuery.biaoti"
+                                      placeholder="标题"
+                                      size="small"
+                                      clearable>
+                            </el-input>
+                        </el-form-item>
+                        <el-form-item class="query-btn">
+                            <el-button type="primary" @click="searchClick()" size="small">搜索</el-button>
+                        </el-form-item>
+                    </el-form>
+                    <div class="btns-row">
+                        <el-button type="success" @click="addClick" v-if="btnAuth('liuyanban','新增')" class="add">新增</el-button>
+                        <el-button class="info" v-if=" btnAuth('liuyanban','查看')"
+                                    :type="selRows.length==1?'info':''"
+                                    :disabled="selRows.length==1?false:true"
+                                    @click="infoClick(null)">详情</el-button>
+                        <el-button class="edit"
+                                   :type="selRows.length==1?'primary':''"
+                                   :disabled="selRows.length==1?false:true"
+                                   @click="editClick"
+                                   v-if=" btnAuth('liuyanban','修改')">修改</el-button>
+                        <el-button class="del"
+                                   :type="selRows.length?'danger':''"
+                                   :disabled="selRows.length?false:true"
+                                   @click="delClick(null)"
+                                   v-if="btnAuth('liuyanban','删除')">删除</el-button>
+                    </div>
+                    <div class="table-wrapper">
+                        <el-table
+                                v-loading="listLoading"
+                                @selection-change="handleSelectionChange"
+                                ref="table"
+                                :data="list"
+                                @row-click="listChange"
+                                :border="false" :stripe="true" >
+                            <el-table-column type="selection" width="55" class-name="selection-column"></el-table-column>
+                            <el-table-column label="序号" width="70" align="center" class-name="num-column">
+                                <template slot-scope="scope">{{ scope.$index + 1}}</template>
+                            </el-table-column>
+                            <el-table-column
+                                    label="标题">
+                                <template slot-scope="scope">
+                                    {{scope.row.biaoti}}
+                                </template>
+                            </el-table-column>
+                            <el-table-column
+                                    label="用户账号">
+                                <template slot-scope="scope">
+                                    {{scope.row.yonghuzhanghao}}
+                                </template>
+                            </el-table-column>
+                            <el-table-column
+                                    label="发布时间">
+                                <template slot-scope="scope">
+                                    {{scope.row.fabushijian}}
+                                </template>
+                            </el-table-column>
+                            <el-table-column label="操作" width="200" class-name="option-column">
+                                <template slot-scope="scope">
+                                    <el-button size="mini" type="primary" class="info" v-if=" btnAuth('liuyanban','查看')" @click="infoClick(scope.row.id)">详情</el-button>
+                                    <el-button size="mini" type="primary" class="some ckpl" v-if="btnAuth('liuyanban','查看评论')" @click="commentClick(scope.row.id)">查看评论</el-button>
+                                </template>
+                            </el-table-column>
+                        </el-table>
+                    </div>
+                    <el-pagination class="pagination"
+                                   :total="total"
+                                   :page-size="listQuery.limit"
+                                   @size-change="sizeChange"
+                                   @current-change="currentChange"
+                                   @prev-click="prevClick"
+                                   @next-click="nextClick"
+                                   layout="prev, pager, next" next-text="下一页" prev-text="上一页" ></el-pagination>
+                </div>
+                <liuyanban-form ref="formRef" @change="formModelChange"></liuyanban-form>
+            </el-main>
+    </el-container>
+</el-container>
+</body>
+<script src="../../static/modules/axios.min.js"></script>
+<script src="../../utils/http.js"></script>
+<script src="../../utils/toolUtil.js"></script>
+<script src="../../utils/global_mixin.js"></script>
+<!--引入组件-->
+<script src="../../components/pageHeader.js"></script>
+<script src="../../components/pageMenus.js"></script>
+<script src="../../components/pageAside.js"></script>
+<script src="formComponent.js"></script>
+<script>
+    var vm = new Vue({
+        el: '#page',
+        data(){
+            return {
+                userInfo:{},
+                tableName:'liuyanban',
+                listLoading:false,
+                listQuery:{
+                    page: 1,
+                    limit: 20,
+                    sort: 'id',
+                    order: 'desc'
+                },
+                searchQuery:{},
+                total:0,    //记录总条数
+                list:null,  //列表数据
+                selRows:[], //选中的记录
+            }
+        },
+        created(){
+            let menuJump = toolUtil.getUrlParamsByKey("menuJump")
+            if(menuJump){
+                this.orderStatus = menuJump
+            }else{
+                this.orderStatus = "全部"
+            }
+            this.init()
+        },
+        methods: {
+            init(){
+                this.getList()
+            },
+            formModelChange(){
+                this.searchClick()
+            },
+            listChange(row){
+            this.$nextTick(()=>{
+                this.$refs['table'].clearSelection()
+                this.$refs['table'].toggleRowSelection(row)
+                })
+            },
+            getList(){
+                this.listLoading = true
+                let params = JSON.parse(JSON.stringify(this.listQuery))
+                                params['sort'] = 'id'
+                params['order'] = 'desc'
+                                                                                                                                                                            if(this.searchQuery.biaoti&&this.searchQuery.biaoti!=''){
+                                    params['biaoti'] = '%' + this.searchQuery.biaoti + '%'
+                                }
+                                                                                                                                                                                                                                                                                                                                                                                                                                            http.get(`liuyanban/page`,{
+                    params:params
+                }).then(res=>{
+                    this.listLoading = false
+                    this.list = res.data.data.list
+                    this.total = +res.data.data.total
+                })
+            },
+            //删
+            delClick(id){
+                let ids = []
+                if (id) {
+                    ids = [id]
+                } else {
+                    if (this.selRows.length) {
+                        for (let x in this.selRows) {
+                            ids.push(this.selRows[x].id)
+                        }
+                    } else {
+                        return false
+                    }
+                }
+                this.$confirm(`是否删除选中留言板`, '提示', {
+                    confirmButtonText: '是',
+                    cancelButtonText: '否',
+                    type: 'warning'
+                }).then(()=>{
+                    http.post(`liuyanban/delete`,ids).then((res)=>{
+                    this.$message.success('操作成功')
+                        this.getList()
+                    })
+                })
+            },
+
+            //多选
+            handleSelectionChange(e){
+                this.selRows = e
+            },
+            //列表数据
+            //分页
+            sizeChange(size){
+                this.listQuery.limit = size
+                this.getList()
+            },
+            currentChange(page){
+                this.listQuery.page = page
+                this.getList()
+            },
+            prevClick(){
+                this.listQuery.page = this.listQuery.page - 1
+                this.getList()
+            },
+            nextClick(){
+                this.listQuery.page = this.listQuery.page + 1
+                this.getList()
+            },
+            searchClick(){
+                this.listQuery.page = 1
+                this.getList()
+            },
+            addClick(){
+                this.$refs['formRef'].init()
+            },
+            //权限验证
+            btnAuth(e,a){
+                return toolUtil.isAuth(e,a)
+            },
+            infoClick(id=null){
+                if(id){
+                    this.$refs['formRef'].init(id,'info')
+                }else if(this.selRows.length){
+                    this.$refs['formRef'].init(this.selRows[0].id,'info')
+                }
+            },
+            editClick(){
+                if(this.selRows.length){
+                    this.$refs['formRef'].init(this.selRows[0].id,'edit')
+                }
+            },
+            spiderClick(){
+
+            },
+            download(file){
+                if(!file){
+                    this.$message.error('文件不存在')
+                }
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.setAttribute('target', '_blank');
+                file && a.setAttribute('download', file);
+                a.href = baseUrl + file;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            },
+            // 查看评论
+            commentClick(id){
+                window.location.href = baseUrl+'manage/page/discussliuyanban/list.html?refid=' + id
+            },
+        }
+    })
+</script>
+<style>
+/*返回按钮盒子*/
+.back-row {
+    margin-bottom: 20px;
+    animation-name: fadeInUp;
+    animation-duration: 1s;
+}
+.back-row>button {
+    padding: 6px 12px;
+    font-size: 14px;
+}
+.back-row>button:focus,.back-row>button:hover {
+    color: #56c68b;
+    border-color: #56c68b50;
+    background: #56c68b10;
+}
+.back-row>button:active {
+    color: #56c68b;
+    border-color: #56c68b50;
+    outline: none
+}
+
+/*订单状态总盒子*/
+.state-tabs{
+    background:none;
+    margin-bottom:20px;
+    border: 0px;
+    animation-name: fadeInUp;
+    animation-duration: 1s;
+}
+.el-tabs--card>.el-tabs__header {
+    margin:0px;
+    border-bottom: 0px solid #dfe4ed;
+}
+/*订单状态盒子*/
+.el-tabs--card>.el-tabs__header .el-tabs__nav {
+    border: 0px solid #dfe4ed;
+    border-radius: 0px;
+}
+/*订单状态item*/
+.el-tabs--card>.el-tabs__header .el-tabs__item {
+    background:#fff;
+    border: 1px solid #ddd;
+    margin-right:20px;
+    height: 32px;
+    line-height: 32px;
+}
+.el-tabs--card>.el-tabs__header .el-tabs__item:hover {
+    color: #56c68b;
+    border-color: #56c68b;
+}
+.el-tabs--card>.el-tabs__header .el-tabs__item:first-child {
+   border-left: 1px solid #ddd;
+}
+.el-tabs--card>.el-tabs__header .el-tabs__item:first-child:hover {
+   border-left: 1px solid #56c68b;
+}
+.el-tabs--card>.el-tabs__header .el-tabs__item.is-active {
+    color: #56c68b;
+    border-color: #56c68b;
+}
+
+/*表单总盒子*/
+form.el-form.list-query-row.el-form--inline {
+    background: #fff;
+    border: 1px solid #ddd;
+    padding: 10px 10px 0;
+    animation-name: fadeInUp;
+    animation-duration: 1.5s;
+}
+.el-select .el-input--prefix .el-input__inner {
+    padding-left: 10px
+}
+.el-select .el-input--suffix .el-input__inner {
+    padding-right: 10px
+}
+.el-input.el-input--small.el-input--suffix {
+    margin: 0 5px;
+}
+label.el-form-item__label {
+    width: auto !important;
+}
+.el-select .el-input--suffix .el-input__inner {
+    max-width: 150px;
+}
+/*箭头*/
+.el-input__suffix {
+    right: 10px;
+    color: #c0c4cc;
+}
+/*搜索按钮*/
+.el-button--primary {
+    color: #fff;
+    background: #56c68b;
+    border-color: #56c68b;
+}
+.el-button--primary:focus,.el-button--primary:hover {
+    background: #56c68b80;
+    border-color: #56c68b80;
+    color: #333;
+}
+
+/*按钮盒子*/
+.btns-row {
+    margin-top: 20px;
+}
+/*按钮*/
+.btns-row button{
+     padding: 0 20px;
+     height:32px;
+     line-height:32px;
+}
+
+/*按钮新增*/
+.btns-row  .add{
+    animation-name: fadeInUp;
+    animation-duration: 1s;
+}
+/*按钮详情*/
+.btns-row  .info{
+    animation-name: fadeInUp;
+    animation-duration: 1.5s;
+}
+/*按钮详情悬浮*/
+.btns-row  .info:hover {
+    color: #56c68b;
+    border-color: #56c68b;
+    background: #56c68b10;
+}
+
+/*按钮修改*/
+.btns-row  .edit{
+    animation-name: fadeInUp;
+    animation-duration: 2s;
+}
+/*按钮删除*/
+.btns-row  .del{
+    animation-name: fadeInUp;
+    animation-duration: 2.5s;
+}
+/*按钮统计图*/
+.btns-row  .chart {
+    animation-name: fadeInUp;
+    animation-duration: 3s;
+}
+/*按钮其他*/
+.btns-row  .other {
+    animation-name: fadeInUp;
+    animation-duration: 3.5s;
+}
+
+/*表格总盒子*/
+.table-wrapper {
+    margin-top: 20px;
+  animation-name: zoomInUp;
+  animation-duration: 2s;
+}
+/*表格盒子*/
+.el-table {
+   background: rgba(255,255,255,1);
+   border: 0px solid #eee;
+}
+.el-table:before {
+    content: "";
+    position: absolute;
+    background:none;
+    z-index: 1
+}
+/*表格头*/
+.el-table__header .has-gutter tr{
+    background: #56c68b30;
+}
+.el-table__header .has-gutter tr th{
+    background: none;
+    color:#333;
+}
+.el-table tr{
+    background: none;
+}
+/*tr悬浮*/
+.el-table tr:hover{
+    background: #56c68b10;
+}
+/*斑马纹*/
+.el-table--striped .el-table__body tr.el-table__row--striped td.el-table__cell {
+    background: #56c68b05;
+}
+/*删除默认的背景色*/
+.el-table--enable-row-hover .el-table__body tr:hover>td.el-table__cell {
+    background: none;
+}
+/*th下横线*/
+.el-table th.el-table__cell.is-leaf {
+    border-bottom:0px solid #eee;
+}
+/*td下横线*/
+.el-table td.el-table__cell {
+    border-bottom:1px solid #eee;
+}
+
+/*表格按钮*/
+.el-table .cell {
+    display:flex;
+    align-items: center;
+    padding-left: 10px;
+    padding-right: 10px
+}
+
+.el-table td button{
+     padding: 0 20px;
+     height:32px;
+     line-height:32px;
+}
+/*表格按钮详情*/
+.el-table td  .info{
+    animation-name: fadeInUp;
+    animation-duration: 1.5s;
+}
+/*表格按钮详情悬浮*/
+.el-table td  .info:hover {
+    color: #56c68b;
+    border-color: #56c68b;
+    background: #56c68b10;
+}
+/*表格按钮删除*/
+.el-table td  .delete{
+    animation-name: fadeInUp;
+    animation-duration: 2s;
+}
+
+/*复选框*/
+.el-checkbox__inner:hover {
+    border-color: #56c68b;
+}
+.el-checkbox__input.is-checked .el-checkbox__inner {
+    background-color: #56c68b;
+    border-color: #56c68b;
+}
+.el-checkbox__input.is-checked+.el-checkbox__label {
+    color: #56c68b;
+}
+.el-checkbox__input.is-focus .el-checkbox__inner {
+    border-color: #56c68b;
+}
+.el-checkbox__input.is-indeterminate .el-checkbox__inner {
+    background-color: #56c68b;
+    border-color: #56c68b;
+}
+
+/*分页总盒子*/
+.pagination {
+    text-align: left;
+    margin-top: 10px;
+    background: none;
+}
+/*分页按钮*/
+.el-pagination button{
+    padding: 0 6px;
+}
+.el-pagination button:hover {
+    color: #56c68b;
+}
+.el-pagination button:disabled {
+    color: #999;
+    background: none;
+    margin:0 2px;
+    border-radius:2px;
+}
+.el-pagination button,.el-pagination span:not([class*=suffix]) {
+    font-size: 14px;
+    height: 28px;
+    line-height: 28px;
+}
+.el-pagination .btn-next,.el-pagination .btn-prev {
+    color: #666;
+    font-weight:500;
+    background: none;
+    margin:0 2px;
+    border-radius:2px;
+}
+.el-pager li {
+    min-width:inherit;
+    color: #666;
+    font-size: 14px;
+    font-weight:500;
+    padding:0 4px;
+    height: 28px;
+    line-height: 28px;
+    background: none;
+    margin:0 5px;
+    border-radius:2px;
+}
+.el-pager li:hover {
+    color: #56c68b;
+}
+.el-pager li.active {
+    color: #56c68b;
+}
+.el-pagination .el-pager li.disabled {
+    color: #999;
+}
+</style>
+</html>

@@ -1,0 +1,46 @@
+[v-cloak]{
+    display:none!important;
+}
+*{
+    box-sizing: border-box;
+}
+.iconfont {
+    width: 1em;
+    height: 1em;
+    vertical-align: -0.2em;
+    fill: currentColor;
+    overflow: hidden;
+}
+body{
+    padding: 0;
+    margin: 0;
+}
+/*去掉el-upload过渡，防止抖动*/
+.el-upload-list__item{
+    transition: none !important
+}
+.disabled .el-upload--picture-card {
+    display: none!important;
+}
+.el-upload-dragger{
+    width: 100%!important;
+}
+/*富文本编辑器*/
+.editor—wrapper{
+    border: 1px solid #ccc;
+}
+.editor—wrapper>.toolbar-container{
+    border-bottom: 1px solid #ccc;
+}
+.editor—wrapper>.editor-container{
+    height: 300px;
+}
+.editor {
+    line-height: normal !important;
+}
+:root {
+    --theme-color: #409EFF;
+}
+.el-button--primary {
+    background-color: var(--theme-color);
+}

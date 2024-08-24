@@ -1,0 +1,230 @@
+/*头部盒子*/
+#pageHeader{
+    height: 100px;
+    box-shadow: 0 1px 4px rgba(0,21,41,.08);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+   border-bottom:20px solid #328f46;
+   background:#fff;
+}
+
+/*菜单按钮盒子*/
+.menu-switch{
+    font-size: 20px;
+    cursor: pointer;
+    animation-name: fadeInLeft;
+    animation-duration: 1s;
+}
+
+/*面包屑盒子*/
+.breadcrumb{
+    margin-left: 20px;
+    animation-name: fadeInLeft;
+    animation-duration: 1s;
+}
+
+/*头部标题*/
+.project-name{
+    margin: 0 auto;
+    padding-right: 100px;
+    font-size: 26px;
+    animation-name: fadeInDown;
+    animation-duration: 1s;
+}
+
+/*用户头像盒子*/
+.user-avatar{
+    position: relative;
+    margin-right: 20px;
+    animation-name: fadeInRight;
+    animation-duration: 1s;
+}
+/*头像图片*/
+.user-avatar img{
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+}
+.el-icon-caret-bottom {
+cursor: pointer;
+    position: absolute;
+    right: -20px;
+    top: 15px !important;
+    font-size: 12px;
+}
+
+/*下拉菜单盒子*/
+.el-dropdown-menu {
+    padding: 10px 0;
+    margin: 5px 0;
+    background-color: #fff;
+    border: 1px solid #e6ebf5;
+    border-radius: 4px;
+    -webkit-box-shadow: 0 2px 12px 0 rgba(0,0,0,.1);
+    box-shadow: 0 2px 12px 0 rgba(0,0,0,.1)
+}
+/*下拉菜单item*/
+.el-dropdown-menu__item {
+    line-height: 36px;
+    padding: 0 20px;
+    margin: 0;
+    font-size: 14px;
+    color: #606266;
+}
+.el-dropdown-menu__item:focus,.el-dropdown-menu__item:not(.is-disabled):hover {
+    background:#edfbf4 !important;
+    color:#06582d !important;
+}
+
+
+
+
+/*全局总盒子*/
+#page {
+    height: 100vh;
+    background:#fff;
+}
+
+.el-container {
+    overflow: hidden;
+}
+
+/*菜单总盒子*/
+.el-aside {
+   height: 100%;
+   overflow-y: auto;
+   background:#fff;
+   padding:4px 4px 0;
+   border-right:1px solid #ddd;
+}
+.el-aside::-webkit-scrollbar {
+    display: none;
+}
+.el-header {
+    z-index: 999;
+    padding: 0!important;
+}
+
+/*菜单盒子 折叠过渡须设置固定宽度*/
+.el-menu {
+    background:none;
+    border-right: none!important;
+}
+.el-menu:not(.el-menu--collapse) {
+    width: 200px;
+}
+
+/*首页  一级菜单item*/
+.el-menu .el-menu-item { 
+    background:#56c68b !important;
+    color:#fff !important;
+    margin-bottom:4px;
+    height: 36px;
+    line-height: 36px;
+    animation-name: fadeInDown;
+    animation-duration: 1s;
+}
+.el-menu .el-menu-item:hover {
+background:#328f46 !important;
+ }
+.el-menu .el-menu-item.is-active {
+    background:#56c68b !important;
+    color:#fff !important;
+}
+.el-menu .el-menu-item.is-active i {
+    color: inherit;
+    font-size:24px;
+}
+/*首页  图标*/
+.el-menu .el-menu-item .el-icon-s-home {
+    color: #fff !important;
+    font-size:24px;
+}
+.el-menu .el-icon-menu{
+    color: #fff !important;
+    font-size:24px;
+}
+
+/*其他 一级菜单总盒子*/
+.el-menu .el-submenu{
+    margin-bottom:4px;
+}
+/*其他 一级菜单盒子*/
+.el-menu .el-submenu .el-submenu__title{
+    background:#56c68b !important;
+    color:#fff !important;
+    border-bottom:0px solid #fff;
+    height: 36px;
+    line-height: 36px;
+    animation-name: fadeInDown;
+    animation-duration: 1s;
+}
+.el-menu .el-submenu .el-submenu__title:focus,.el-menu .el-submenu .el-submenu__title:hover {
+    background:#328f46 !important;
+}
+/*其他 一级菜单 图标*/
+.el-menu .el-submenu .el-submenu__title  .el-icon-menu {
+    color: #fff;
+    font-size:24px;
+}
+/*其他 一级菜单 箭头*/
+.el-menu .el-submenu .el-submenu__title  .el-submenu__icon-arrow{
+    color: #fff !important;
+}
+
+/*二级菜单盒子*/
+.el-submenu .el-menu {
+}
+/*二级菜单item*/
+.el-submenu .el-menu .el-menu-item {
+    height: 40px;
+    line-height: 40px;
+    padding: 0 22px !important;
+    min-width: 100%;
+    background:#fff !important;
+    color:#333 !important;
+    margin-bottom:0px;
+    animation-duration: 0s;
+}
+.el-submenu .el-menu .el-menu-item:hover {
+    background:#edfbf4 !important;
+    color:#06582d !important;
+}
+/*二级菜单进入动画*/
+.el-submenu .v-enter-to{
+    animation-name: flipInY;
+    animation-duration: 1s;
+}
+
+/*收缩的二级菜单总盒子*/
+.el-menu--vertical{
+
+}
+/*收缩的二级菜单ul*/
+.el-menu--vertical>.el-menu--popup {
+    padding: 0;
+}
+.el-menu--vertical .el-menu--popup .el-menu-item {
+    background: #56c68b !important;
+    color: #fff !important;
+    margin-bottom: 0px;
+    height: 36px;
+    line-height: 36px;
+    border-bottom: 1px solid #eee;
+    animation-name: none;
+    animation-duration: 0s;
+}
+.el-menu--vertical .el-menu--popup .el-menu-item:hover{
+    background: #56c68b90 !important;
+    color: #333 !important;
+}
+
+/*菜单折叠过渡须设置固定宽度*/
+.el-menu {
+    border-right: none!important;
+}
+.el-menu:not(.el-menu--collapse) {
+    width: 200px;
+}

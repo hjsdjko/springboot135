@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>找回密码</title>
+    <link rel="stylesheet" href="../static/modules/elementui/theme/index.css">
+    <link rel="stylesheet" href="../static/css/app.css">
+    <link rel="stylesheet" href="../static/modules/animate.min.css">
+    <script src="../static/modules/wow.min.js"></script>
+    <script src="../static/modules/vue.min.js"></script>
+    <script src="../static/modules/elementui/index.js"></script>
+    <script src="../static/iconfont/iconfont.js"></script>
+</head>
+<body>
+<div id="page" v-cloak>
+    <div class="forget-wrapper">
+        <div class="from-name">找回密码</div>
+        <el-steps ref="steps" :active="pageType" class="steps" :align-center="true" finish-status="success" >
+            <el-step title="获取密保" >
+            </el-step>
+            <el-step title="验证密保" >
+            </el-step>
+            <el-step title="重置密码" >
+            </el-step>
+        </el-steps>
+        <el-form :model="forgetForm" class="forget-form" size="small" label-width="80px" >
+        </el-form>
+        <div class="btns">
+            <el-button v-if="pageType==0" class="getSecurity" type="primary" @click="getSecurity">获取密保</el-button>
+            <el-button v-if="pageType==1" class="validateSecurity" type="primary" @click="validateSecurity">确认密保</el-button>
+            <el-button v-if="pageType==2" class="updatePassword" type="primary" @click="updatePassword">重置密码</el-button>
+        </div>
+    </div>
+</div>
+</body>
+<script src='../static/modules/axios.min.js'></script>
+<script src="../utils/http.js"></script>
+<script src="../utils/toolUtil.js"></script>
+<script src="../utils/global_mixin.js"></script>
+<script>
+    var vm = new Vue({
+        el: '#page',
+        data(){
+            return {
+                pageType:1,
+                forgetForm:{},
+                userForm:{},
+            }
+        },
+        created(){
+
+        },
+        methods: {
+        },
+
+    })
+</script>
+<style>
+/*总盒子*/
+#page{
+    background: url("http://clfile.zggen.cn/20231206/6494cf32934945c489df96b8d97b94e6.jpg") no-repeat center center / cover;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/*登录表单总盒子*/
+.forget-wrapper{
+    background: rgb(255, 255, 255);
+    box-sizing: border-box;
+    padding-bottom: 30px;
+    width: 650px;
+    min-height:500px;
+    border: 0px solid rgb(255, 255, 255);
+    z-index: 1;
+   box-shadow:0px 1px 5px #999;
+}
+
+/*标题盒子*/
+.forget-wrapper .from-name{
+    padding: 10px 0px;
+    margin: 0px 0px 40px;
+    color: #fff;
+    background: #56c68b;
+    width: 100%;
+    font-size: 22px;
+    line-height: 40px;
+    text-align: center;
+    animation-name: bounceInDown;
+    animation-duration: 1s;
+}
+
+/*密保盒子*/
+.steps{
+    padding: 0px 10%;
+    margin-bottom: 40px;
+    animation-name:fadeInUp;
+    animation-duration:1s;
+}
+
+/*表单盒子*/
+.forget-form{
+    padding: 0 0px;
+}
+
+/*item盒子*/
+.forget-form .el-form-item {
+    display:flex;
+}
+
+/*label标签*/
+.forget-form label.el-form-item__label {
+    min-width: 150px;
+    animation-name: bounceInLeft;
+    animation-duration: 2s;
+}
+
+/*item内容盒子*/
+.forget-form .el-form-item__content {
+    width: calc(100% - 250px);
+    margin-left:0px !important;
+    animation-name: bounceInRight;
+    animation-duration: 2s;
+}
+
+/*输入框*/
+.forget-form .el-input__inner{
+    border:1px solid #eee;
+    border-radius:0px;
+}
+.forget-form .el-input__inner:hover,.forget-form .el-input__inner:focus{
+border:1px solid #27AE60;
+}
+
+/*按钮盒子*/
+.btns{
+  width:100%;
+}
+
+/*按钮*/
+.btns .el-button--primary {
+    width: calc(100% - 250px);
+    margin-left:150px;
+    color: #fff;
+    background-color: #56c68b;
+    border-color: #56c68b;
+    border-radius:0px;
+    animation-name: bounceInUp;
+    animation-duration: 1s;
+}
+.btns .el-button--primary:focus,.btns .el-button--primary:hover {
+    background: #333;
+    border-color: #333;
+    color: #fff
+}
+</style>
+</html>
